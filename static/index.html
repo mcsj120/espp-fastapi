@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title></title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        .container_strategies {
+            display: flex;
+            width: 100vw; /* Full screen width */
+        }
+
+        .box_strategies {
+            flex: 1; /* Makes each box take equal space */
+            text-align: center;
+            padding: 20px;
+            border: 2px solid black;
+            font-size: 20px;
+        }
+
+                /* Tooltip styling */
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+            font-weight: bold;
+            margin-left: 5px;
+        }
+
+        .tooltip .tooltip-text {
+            visibility: hidden;
+            width: 200px;
+            background-color: black;
+            color: #fff;
+            text-align: center;
+            padding: 5px;
+            border-radius: 5px;
+            position: absolute;
+            top: 150%; /* Positions below the cursor */
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 10;
+        }
+
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
+    </style>
+</head>
+<body>
+	<div>
+		Assumptions:
+        - Assumes stocks are purchased at the smaller of the price at the beginning of the offering period or the price at the end of the offering period, multiplied by 1 - the discount rate.
+        - This model assumes the stock is sold at the end of the offering period. This often doesn't match the real world, as there is a delay to selling the stock.
+	</div>
+    <div>
+        <h2>Input Parameters</h2>
+        <p>Each company's stock and ESPP is different. In order to understand how to best use a ESPP, you need to identify certain variables that impact the value of a ESPP.</p>
+        <div>
+            <h3>Employee Stock Purchase Plan Parameters</h3>
+            <p>These parameters are about what your company is offering in the purchase plan.</p>
+            <div>
+                <label for="company">Company Name</label>
+                <input type="text" id="company" name="company" >
+                <br><br>
+            </div>
+            <div>
+                <label for="discount_rate">Discount Rate for ESPP shares</label>
+                <input type="number" id="discount_rate" name="discount_rate" step="any" min="0" max="1" value="0.1">
+                <span class="tooltip">❓
+                        <span class="tooltip-text">The percent discount the shares can be purchased for through the ESPP. If an employee gets 10% of a share, enter 0.1.</span>
+                </span>
+                <br><br>
+            </div>
+            <div>
+                <label for="offering_periods">Number of offering periods</label>
+                <input type="number" id="offering_periods" name="offering_periods" min="0" value="2">
+                <span class="tooltip">❓
+                    <span class="tooltip-text">The number of periods where employees can purchase stock. If stocks are purchased in June and Decemeber, there are 2 offering periods.</span>
+                </span>
+                <br><br>
+            </div>
+            <div>
+                <label for="pay_periods_per_offering">Pay periods per offering</label>
+                <input type="number" id="pay_periods_per_offering" name="pay_periods_per_offering" min="1" value="12">
+                <span class="tooltip">❓
+                    <span class="tooltip-text">The number of pay periods where money is put into the ESPP. This is important because each pay period represents a point where an employee can change their contributions.</span>
+                </span>
+                <br><br>
+            </div>
+            <div>
+                <label for="cost_to_sell">Cost to sell</label>
+                <input type="number" id="cost_to_sell" name="cost_to_sell" min="1" value="12">
+                <span class="tooltip">❓
+                    <span class="tooltip-text">The cost to sell the stock after the purchase period. Usually neglible, but worth noting.</span>
+                </span>
+                <br><br>
+            </div>
+        </div>
+        <div>
+            <h3>Employee Strategy Parameters</h3>
+            <p>These parameters are about how you are able to use your companies ESPP plan.</p>
+        </div>
+        <div>
+            <h3>Company Stock Parameters</h3>
+            <p>This defines the behavior of the stock itself. This is important because </p>
+            <div>
+                <label for="initial_price">Initial Price of Stock</label>
+                <input type="number" id="initial_price" name="initial_price" step="any" min="0" value="40.0">
+                <br><br>
+            </div>
+            <div>
+                <label for="volatility">Stock Volatility</label>
+                <input type="number" id="volatility" name="volatility" step="any" value="0.1">
+                <span class="tooltip">❓
+                        <span class="tooltip-text">This represents the expected rate of return of your companies stock. Generally, as the risk of a stock increases, the expected rate of return increases. If the expected rate of return is 25%, enter 0.25.</span>
+                </span>
+                <p>To find the expected rate of return according to the Capital Asset Pricing Model, find your company's stock on <a href="https://www.stock-analysis-on.net/">https://www.stock-analysis-on.net/</a> CVS Health's stock is at <a href="https://www.stock-analysis-on.net/NYSE/Company/CVS-Health-Corp/DCF/CAPM">https://www.stock-analysis-on.net/NYSE/Company/CVS-Health-Corp/DCF/CAPM</a></p>
+                <br><br>
+            </div>
+            <div>
+                <label for="expected_ror">Expected rate of return</label>
+                <input type="number" id="expected_ror" name="expected_ror" step="any" value="0.1">
+                <span class="tooltip">❓
+                        <span class="tooltip-text">This represents the expected rate of return of your companies stock. Generally, as the risk of a stock increases, the expected rate of return increases. If the expected rate of return is 25%, enter 0.25.</span>
+                </span>
+                <p>To find the expected rate of return according to the Capital Asset Pricing Model, find your company's stock on <a href="https://www.stock-analysis-on.net/">https://www.stock-analysis-on.net/</a> CVS Health's stock is at <a href="https://www.stock-analysis-on.net/NYSE/Company/CVS-Health-Corp/DCF/CAPM">https://www.stock-analysis-on.net/NYSE/Company/CVS-Health-Corp/DCF/CAPM</a></p>
+                <br><br>
+            </div>
+        </div>
+    </div>
+    <div>
+        <h2>Strategies</h2>
+        <div id="strategy_list">
+            <!-- Sample div. Will get created by API call dynamically
+                <div class="container_strategies">
+                    <div id="Max_all_the_way" class="box_strategies">
+                        <h3>
+                            Max all the way
+                        </h3>
+                        <p>
+                            This strategy is about contributing as much money as possible to the ESPP. For most people, this is the best strategy, as it requires
+                            little maintainence and you will still get most of the benefit of the ESPP.
+                        </p>
+                    <div class="box_strategies">Box 2</div>
+                    <div class="box_strategies">Box 3</div>
+                </div>
+            -->
+        </div>
+    </div>
+    <script>
+
+        // Copied from r2r code, request.js
+        async function sendGetRequest(url){
+            let response = await fetch(url, {
+                method : "GET"
+            })
+            let text = await response.json()
+            return text;
+        }
+
+        var selectedStrategy = null;
+
+        
+        // Get the strategy name and description from an API call
+        sendGetRequest("http://localhost:3000/strategies").then((data) => {
+            console.log(data);
+            let strategies = data;
+            let container = document.querySelector("#strategy_list");
+            let currentContainer = container;
+            strategies.forEach((strategy, index) => {
+                if (index % 3 === 0 && index !== 0) {
+                    currentContainer = document.createElement("div");
+                    currentContainer.classList.add("container_strategies");
+                    container.parentNode.appendChild(currentContainer);
+                }
+                let box = document.createElement("div");
+                box.id=strategy.name.replace(" ", "_");
+                box.classList.add("box_strategies");
+                box.innerHTML = `<h3>${strategy.name}</h3><p>${strategy.description}</p>`;
+                box.addEventListener("click", () => {
+                    selectedStrategy = box.id;
+                    console.log("Selected Strategy:", selectedStrategy);
+                });
+                currentContainer.appendChild(box);
+            });
+        });
+
+    </script>
+</body>
+</html>
