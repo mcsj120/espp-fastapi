@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
 class CompanyStockPlanValidation(BaseModel):
-    name: str
+    company: str
     discount_rate: float
     offering_periods: int
     pay_periods_per_offering: int
@@ -15,9 +15,8 @@ class CompanyStockParamsValidation(BaseModel):
 class EmployeeOptionsValidation(BaseModel):
     max_contribution: float
     steps_to_zero: int
-    rate_of_return: float
+    liquidity_preference_rate: float
     capital_gains_tax_rate: float
-    default_to_max_allowed=False
 
 class StockRequest(BaseModel):
     company_stock_params: CompanyStockParamsValidation

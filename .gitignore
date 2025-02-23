@@ -1,0 +1,5 @@
+*.csv
+config*.json
+stock_histories/stock-data*.json
+
+*.pyc

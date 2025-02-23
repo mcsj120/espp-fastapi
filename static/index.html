@@ -48,9 +48,30 @@
             opacity: 0;
             transition: opacity 0.3s;
             z-index: 10;
+
+            /* Make sure the tooltip text is selectable */
+            user-select: text;
+
+            /* Add a small arrow pointing towards the element */
+            ::after {
+                content: '';
+                position: absolute;
+                top: 100%;
+                left: 50%;
+                margin-left: -5px;
+                border-width: 5px;
+                border-style: solid;
+                border-color: black transparent transparent transparent;
+            }
         }
 
+
         .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .tooltip-text:hover {
             visibility: visible;
             opacity: 1;
         }
@@ -63,46 +84,46 @@
         - Assumes stocks are purchased at the smaller of the price at the beginning of the offering period or the price at the end of the offering period, multiplied by 1 - the discount rate.
         - This model assumes the stock is sold at the end of the offering period. This often doesn't match the real world, as there is a delay to selling the stock.
 	</div>
-    <div>
+    <div id="input-parameters">
         <h2>Input Parameters</h2>
         <p>Each company's stock and ESPP is different. In order to understand how to best use a ESPP, you need to identify certain variables that impact the value of a ESPP.</p>
         <div>
             <h3>Employee Stock Purchase Plan Parameters</h3>
             <p>These parameters are about what your company is offering in the purchase plan.</p>
-            <div>
-                <label for="company">Company Name</label>
+            <div class="user-input">
+                <label for="company">Company Stock Ticker</label>
                 <input type="text" id="company" name="company" >
                 <br><br>
             </div>
-            <div>
+            <div class="user-input">
                 <label for="discount_rate">Discount Rate for ESPP shares</label>
-                <input type="number" id="discount_rate" name="discount_rate" step="any" min="0" max="1" value="0.1">
+                <input type="number" id="discount_rate" name="discount_rate" step="any" min="0" max="1" placeholder="0.1">
                 <span class="tooltip">❓
                         <span class="tooltip-text">The percent discount the shares can be purchased for through the ESPP. If an employee gets 10% of a share, enter 0.1.</span>
                 </span>
                 <br><br>
             </div>
-            <div>
+            <div class="user-input">
                 <label for="offering_periods">Number of offering periods</label>
-                <input type="number" id="offering_periods" name="offering_periods" min="0" value="2">
+                <input type="number" id="offering_periods" name="offering_periods" min="0" placeholder="2">
                 <span class="tooltip">❓
                     <span class="tooltip-text">The number of periods where employees can purchase stock. If stocks are purchased in June and Decemeber, there are 2 offering periods.</span>
                 </span>
                 <br><br>
             </div>
-            <div>
+            <div class="user-input">
                 <label for="pay_periods_per_offering">Pay periods per offering</label>
-                <input type="number" id="pay_periods_per_offering" name="pay_periods_per_offering" min="1" value="12">
+                <input type="number" id="pay_periods_per_offering" name="pay_periods_per_offering" min="1" placeholder="12">
                 <span class="tooltip">❓
                     <span class="tooltip-text">The number of pay periods where money is put into the ESPP. This is important because each pay period represents a point where an employee can change their contributions.</span>
                 </span>
                 <br><br>
             </div>
-            <div>
+            <div class="user-input">
                 <label for="cost_to_sell">Cost to sell</label>
-                <input type="number" id="cost_to_sell" name="cost_to_sell" min="1" value="12">
+                <input type="number" id="cost_to_sell" name="cost_to_sell" min="1" placeholder="12">
                 <span class="tooltip">❓
-                    <span class="tooltip-text">The cost to sell the stock after the purchase period. Usually neglible, but worth noting.</span>
+                    <span class="tooltip-text">The cost to sell the stock after the purchase period. Usually negligible, but worth noting.</span>
                 </span>
                 <br><br>
             </div>
@@ -110,27 +131,78 @@
         <div>
             <h3>Employee Strategy Parameters</h3>
             <p>These parameters are about how you are able to use your companies ESPP plan.</p>
+            <div class="user-input">
+                <label for="maximum_contribution">Maximum Contribution</label>
+                <input type="number" id="maximum_contribution" name="maximum_contribution" step="any" min="0" placeholder="10000">
+                <span class="tooltip">❓
+                    <span class="tooltip-text">
+                        The maximum amount you can contribute to the plan in a given year.
+                        This can technically be over the IRS limits of 25K, because if your company
+                        lets you contribute 10% of your post-tax income and you make 500K, your max contribtution
+                        would be 50K. If you don't know, you can use the last contributed amount in your ESPP
+                        and multiple that by the number of offering periods (assuming max contributions).
+                    </span>
+                </span>
+                <br><br>
+            </div>
+            <div class="user-input">
+                <label for="steps_to_zero">Steps to Zero</label>
+                <input type="number" id="steps_to_zero" name="steps_to_zero" min="1" placeholder="1">
+                <span class="tooltip">❓
+                    <span class="tooltip-text">
+                        This represents a scenario where you can only pick a percent to contribute (say 15%),
+                        and then when you want to decrease it, the amount can only be lowered to 14%,13%...
+                    </span>
+                </span>
+                <br><br>
+            </div>
+            <div class="user-input">
+                <label for="liquidity_preference">Liquidity Preference Rate</label>
+                <input type="number" id="liquidity_preference" name="liquidity_preference" min="0" placeholder="0.05">
+                <span class="tooltip">❓
+                    <span class="tooltip-text">
+                        How much you value having money in your bank account now vs. waiting for the ESPP to mature.
+                        This is important to differentiate situations where you overcontribute to the ESPP and get a refund at the end of the year.
+                        Although the end result is still the same, you lost out on an investment period with the overcommitted money.
+                        In calculations, this is assumed to be untaxed.
+                        For 5%, enter 0.05.
+                    </span>
+                </span>
+                <br><br>
+            </div>
+            <div class="user-input">
+                <label for="capital_gains_tax_rate">Capital Gains Tax Rate</label>
+                <input type="number" id="capital_gains_tax_rate" name="capital_gains_tax_rate" min="0" placeholder="0.05">
+                <span class="tooltip">❓
+                    <span class="tooltip-text">
+                        This calculation assumes you sell the stocks at the end of the offering period in order to
+                        realize gains and diversify your portfolio. As such this is the capital gains tax bracket of the year which stocks are purchased.
+                        This currently doesn't take into account when capital gains will be paid.
+                    </span>
+                </span>
+                <br><br>
+            </div>
         </div>
         <div>
             <h3>Company Stock Parameters</h3>
             <p>This defines the behavior of the stock itself. This is important because </p>
-            <div>
+            <button id="results" onclick="getStockData()">Fetch stock price and volatility</button>
+            <div class="user-input">
                 <label for="initial_price">Initial Price of Stock</label>
-                <input type="number" id="initial_price" name="initial_price" step="any" min="0" value="40.0">
+                <input type="number" id="initial_price" name="initial_price" step="any" min="0" placeholder="40.0">
                 <br><br>
             </div>
-            <div>
+            <div class="user-input">
                 <label for="volatility">Stock Volatility</label>
-                <input type="number" id="volatility" name="volatility" step="any" value="0.1">
+                <input type="number" id="volatility" name="volatility" step="any" placeholder="10">
                 <span class="tooltip">❓
-                        <span class="tooltip-text">This represents the expected rate of return of your companies stock. Generally, as the risk of a stock increases, the expected rate of return increases. If the expected rate of return is 25%, enter 0.25.</span>
+                        <span class="tooltip-text">The standard deviation of the stock's returns, representing its risk.</span>
                 </span>
-                <p>To find the expected rate of return according to the Capital Asset Pricing Model, find your company's stock on <a href="https://www.stock-analysis-on.net/">https://www.stock-analysis-on.net/</a> CVS Health's stock is at <a href="https://www.stock-analysis-on.net/NYSE/Company/CVS-Health-Corp/DCF/CAPM">https://www.stock-analysis-on.net/NYSE/Company/CVS-Health-Corp/DCF/CAPM</a></p>
                 <br><br>
             </div>
-            <div>
+            <div class="user-input">
                 <label for="expected_ror">Expected rate of return</label>
-                <input type="number" id="expected_ror" name="expected_ror" step="any" value="0.1">
+                <input type="number" id="expected_ror" name="expected_ror" step="any" placeholder="0.1">
                 <span class="tooltip">❓
                         <span class="tooltip-text">This represents the expected rate of return of your companies stock. Generally, as the risk of a stock increases, the expected rate of return increases. If the expected rate of return is 25%, enter 0.25.</span>
                 </span>
@@ -140,13 +212,17 @@
         </div>
     </div>
     <div>
+        <button id="results" onclick="getResults()">Fetch stock strategy results</button>
+        <button id="fetch-series" style="visibility: hidden;" onclick="fetchCSV()">Fetch time series data used to model results</button>
+    </div>
+    <div>
         <h2>Strategies</h2>
         <div id="strategy_list">
             <!-- Sample div. Will get created by API call dynamically
                 <div class="container_strategies">
                     <div id="Max_all_the_way" class="box_strategies">
                         <h3>
-                            Max all the way
+                            Full Contribution
                         </h3>
                         <p>
                             This strategy is about contributing as much money as possible to the ESPP. For most people, this is the best strategy, as it requires
@@ -158,44 +234,218 @@
             -->
         </div>
     </div>
-    <script>
+    <div>
+        <div>
+            <h2>Suggestions</h2>
+            <p>Suggestions on new strategies or ways to improve the system are greatly appreciated!</p>
+            Name (Optional):<input type="text" id="suggestor_name" name="suggestor_name"/>
+            <br>
+            Email (Optional):<input type="text" id="email" name="email"/>
+            <br>
+            Suggestions:<input type="text" id="suggestions" name="suggestions"/>
+            <br>
+            <button onclick="sendSuggestion()">Submit suggestion</button>    
+        </div>
+        <div>
+            <h2>Implementation Details</h2>
+            <p>You can find the source code for the stock strategies at my GitHub repository:</p>
+            <a href="https://github.com/mcsj120/employee-stock-purchase-plan-strategy" target="_blank">GitHub Repository</a>
+        </div>
+    </div>
 
-        // Copied from r2r code, request.js
-        async function sendGetRequest(url){
-            let response = await fetch(url, {
-                method : "GET"
-            })
+</body>
+<script>
+
+    // Copied from r2r code, request.js
+    async function sendGetRequest(url){
+        let response = await fetch(url, {
+            method : "GET"
+        })
+        let text = await response.json()
+        return text;
+    }
+
+    async function sendGetRequestFile(url) {
+        let response = await fetch(url, {
+            method: "GET"
+        });
+        if (response.status === 200) {
+            let blob = await response.blob();
+            let urlBlob = window.URL.createObjectURL(blob);
+            let a = document.createElement('a');
+            a.href = urlBlob;
+            a.download = 'time_series_data.csv'; // You can set the file name here
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(urlBlob);
+        } else {
             let text = await response.json()
             return text;
         }
+    }
 
-        var selectedStrategy = null;
+    async function sendPostRequest(url, data){
+        let response = await fetch(url, {
+            method : "POST",
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        let text = await response.json()
+        return text
+    }
 
+    // Function to set a cookie
+    function setCookie(name, value, days) {
+        const d = new Date();
+        d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
+        let expires = "expires=" + d.toUTCString();
+        document.cookie = name + "=" + value + ";" + expires + ";path=/";
+    }
+
+    // Function to get a cookie
+    function getCookie(name) {
+        let nameEQ = name + "=";
+        let ca = document.cookie.split(';');
+        for (let i = 0; i < ca.length; i++) {
+            let c = ca[i];
+            while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+            if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+        }
+        return null;
+    }
+
+    job_id = null;
         
-        // Get the strategy name and description from an API call
-        sendGetRequest("http://localhost:3000/strategies").then((data) => {
-            console.log(data);
-            let strategies = data;
-            let container = document.querySelector("#strategy_list");
-            let currentContainer = container;
-            strategies.forEach((strategy, index) => {
-                if (index % 3 === 0 && index !== 0) {
-                    currentContainer = document.createElement("div");
-                    currentContainer.classList.add("container_strategies");
-                    container.parentNode.appendChild(currentContainer);
-                }
-                let box = document.createElement("div");
-                box.id=strategy.name.replace(" ", "_");
-                box.classList.add("box_strategies");
-                box.innerHTML = `<h3>${strategy.name}</h3><p>${strategy.description}</p>`;
-                box.addEventListener("click", () => {
-                    selectedStrategy = box.id;
-                    console.log("Selected Strategy:", selectedStrategy);
-                });
-                currentContainer.appendChild(box);
+    // Get the strategy name and description from an API call
+    sendGetRequest("http://localhost:8000/strategies").then((data) => {
+        console.log(data);
+        let strategies = data;
+        let container = document.querySelector("#strategy_list");
+        let currentContainer = container;
+        strategies.forEach((strategy, index) => {
+            if (index % 3 === 0 && index !== 0) {
+                currentContainer = document.createElement("div");
+                currentContainer.classList.add("container_strategies");
+                container.parentNode.appendChild(currentContainer);
+            }
+            let box = document.createElement("div");
+            box.id=strategy.name.replace(" ", "_");
+            box.classList.add("box_strategies");
+            box.innerHTML = `<h3>${strategy.name}</h3><p>${strategy.description}</p>`;
+            box.addEventListener("click", () => {
+                selectedStrategy = box.id;
+                console.log("Selected Strategy:", selectedStrategy);
             });
+            currentContainer.appendChild(box);
         });
+    });
 
-    </script>
-</body>
+    function getStockData(){
+        let company = document.querySelector("#company").value;
+        let url = `http://localhost:8000/stock_data?ticker=${company}`;
+        sendGetRequest(url).then((data) => {
+            document.querySelector("#initial_price").value = data.price;
+            document.querySelector("#volatility").value = data.volatility;
+        });
+    }
+
+    function getResults(){
+        // Employee Stock Purchase Plan Parameters
+        let company = document.querySelector("#company").value;
+        let discount_rate = document.querySelector("#discount_rate").value;
+        let offering_periods = document.querySelector("#offering_periods").value;
+        let pay_periods_per_offering = document.querySelector("#pay_periods_per_offering").value;
+        let cost_to_sell = document.querySelector("#cost_to_sell").value;
+
+        // Company Stock Parameters
+        let initial_price = document.querySelector("#initial_price").value;
+        let volatility = document.querySelector("#volatility").value;
+        let expected_ror = document.querySelector("#expected_ror").value;
+
+        // Employee Options
+        let maximum_contribution = document.querySelector("#maximum_contribution").value;
+        let steps_to_zero = document.querySelector("#steps_to_zero").value;
+        let liquidity_preference_rate = document.querySelector("#liquidity_preference").value;
+        let capital_gains_tax_rate = document.querySelector("#capital_gains_tax_rate").value;
+
+        let url = `http://localhost:8000/stock_run`//${job_id !== null ? `?job_id=${job_id}` : ''}`;
+        sendPostRequest(url, {
+            "company_stock_params":{
+                "initial_price": initial_price,
+                "volatility": volatility,
+                "expected_rate_of_return": expected_ror
+            },
+            "employee_stock_plan":{
+                "company": company,
+                "discount_rate": discount_rate,
+                "offering_periods": offering_periods,
+                "pay_periods_per_offering": pay_periods_per_offering,
+                "cost_to_sell": cost_to_sell
+            },
+            "employee_options":{
+                "max_contribution": maximum_contribution,
+                "steps_to_zero": steps_to_zero,
+                "liquidity_preference_rate": liquidity_preference_rate,
+                "capital_gains_tax_rate": capital_gains_tax_rate
+            }
+
+        }).then((data) => {
+            console.log(data);
+            if(data.job_id === undefined){
+                return;
+            }
+            job_id = data.job_id;
+            document.getElementById("fetch-series").style.visibility = "visible";
+        });
+    }
+
+    function fetchCSV(){
+        let url = `http://localhost:8000/time_series?job_id=${job_id}`;
+        sendGetRequestFile(url).then((data) => {
+            console.log(data);
+        });
+    }
+    
+    function sendSuggestion(){
+        let suggestion = document.querySelector("#suggestions").value;
+        if (suggestion === "") {
+            suggestion.placeholder = "Please enter a suggestion";
+            return;
+        }
+        sendPostRequest(`http://localhost:8000/suggestions`, {
+            "name": document.querySelector("#suggestor_name").value,
+            "email": document.querySelector("#email").value,
+            "suggestion": suggestion
+        }).then((data) => {
+            console.log(data);
+            document.querySelector("#suggestions").value = "";
+            document.querySelector("#suggestor_name").value = "";
+            document.querySelector("#email").value = "";
+        });
+    }
+
+    // Event listener for input change
+    Array.from(document.getElementsByClassName("user-input")).forEach((element) => {
+        element.querySelector("input").addEventListener('input', function() {
+            let inputValue = this.value;
+            setCookie(this.name, inputValue, 7);  // Store the input value in a cookie for 7 days
+        })
+    });
+
+    // Check if there's a stored cookie value and set it to the input field
+    window.onload = function() {
+        Array.from(document.getElementsByClassName("user-input")).forEach((element) => {
+            let input = element.querySelector("input");
+            let storedValue = getCookie(input.name);
+            if (storedValue) {
+                input.value = storedValue;
+            }
+        });
+    };
+
+
+</script>
 </html>
