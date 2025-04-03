@@ -1,5 +1,5 @@
 *.csv
 config*.json
-stock_histories/stock-data*.json
+stock_histories/stock_data*.json
 
 *.pyc

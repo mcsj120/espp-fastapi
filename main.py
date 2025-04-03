@@ -22,7 +22,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from models.company_plan import CompanyStockPlan
 from models.company_stock_start_parameters import CompanyStockStartParameters
 from models.employee_options import EmployeeOptions
-from stock_price import generate_scenarios, run_strategies_against_scenario
+from stock_price import generate_scenarios, run_strategies_against_scenarios
 import json
 
 
@@ -54,12 +54,19 @@ async def read_index():
         return HTMLResponse(content=file.read())
     
 @main_router.get("/strategies", response_class=JSONResponse)
-async def read_index():
+async def read_strategies():
     with open(os.path.join(os.path.dirname(__file__), 'static', 'strategies.json'), 'r', encoding='utf-8') as file:
         return HTMLResponse(content=file.read())
     
 @main_router.get("/stock_data")
-async def generate_stock_run(ticker: str):
+async def get_stock_data(ticker: str):
+    if len(ticker) == 0:
+        return JSONResponse(content={"error": "No ticker passed"}, status_code=400)
+    elif len(ticker) > 5:
+        return JSONResponse(content={"error": "Ticker is too long"}, status_code=400)
+    elif not ticker.isalpha():
+        return JSONResponse(content={"error": "Ticker is not alphabetic"}, status_code=400)
+    
     today_date = datetime.now().strftime("%Y-%m-%d")
 
     file_name = f'stock_data-{ticker}-{today_date}.json'
@@ -85,7 +92,7 @@ async def generate_stock_run(ticker: str):
     
 
 @main_router.get("/time_series", response_class=JSONResponse)
-async def read_index(job_id: str):
+async def get_time_series(job_id: str):
     if job_id is None:
         return JSONResponse(content={"error": "No job_id passed"}, status_code=400)
     
@@ -110,6 +117,7 @@ async def generate_stock_run(request: StockRequest, job_id: str = None):
     )
     employee_options = EmployeeOptions(
         company_stock_plan=company_stock_plan,
+        company_stock_parameters=company_stock_start_parameters,
         max_contribution=request.employee_options.max_contribution,
         steps_to_zero=request.employee_options.steps_to_zero,
         liquidity_preference_rate=request.employee_options.liquidity_preference_rate,
@@ -129,12 +137,12 @@ async def generate_stock_run(request: StockRequest, job_id: str = None):
             file_name=f"prices_{job_id}"
         )
     
-    response = run_strategies_against_scenario(price_sets, employee_options)
+    response = run_strategies_against_scenarios(price_sets, employee_options)
     response["job_id"] = job_id
     return response
 
 @main_router.post("/suggestions")
-async def generate_stock_run(suggestion: Suggestion):
+async def recieve_suggestion(suggestion: Suggestion):
     if suggestion is None:
         return JSONResponse(content={"error": "No suggestion passed"}, status_code=400)
     

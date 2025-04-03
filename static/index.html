@@ -3,28 +3,62 @@
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title></title>
+	<title>ESPP Benefits Calculator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
         }
 
         .container_strategies {
             display: flex;
-            width: 100vw; /* Full screen width */
+            width: 100%;
         }
 
         .box_strategies {
-            flex: 1; /* Makes each box take equal space */
+            flex: 1;
             text-align: center;
             padding: 20px;
             border: 2px solid black;
             font-size: 20px;
         }
 
-                /* Tooltip styling */
+        #input-parameters > div {
+            outline: 2px solid #2c3e50;
+            outline-offset: -2px;
+            margin-bottom: 10px;
+        }
+
+        /* User input div styling w tooltip */
+        .user-input-tooltip {
+            display: grid;
+            grid-template-columns: minmax(auto, 1fr) auto minmax(10ch, auto);
+            gap: 1rem;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        /* User input div styling w/o tooltip */
+        .user-input {
+            display: grid;
+            grid-template-columns:  minmax(auto, 1fr) minmax(10ch, auto);
+            gap: 1rem;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        /* User input styling. add class if needed */
+        input {
+            padding-left: 1em !important;
+            width: 10ch;
+            justify-self: start;
+        }
+
+        /* Tooltip styling */
         .tooltip {
             position: relative;
             display: inline-block;
@@ -33,6 +67,7 @@
             margin-left: 5px;
         }
 
+        /* Tooltip text styling */
         .tooltip .tooltip-text {
             visibility: hidden;
             width: 200px;
@@ -78,163 +113,159 @@
 
     </style>
 </head>
-<body>
-	<div>
-		Assumptions:
-        - Assumes stocks are purchased at the smaller of the price at the beginning of the offering period or the price at the end of the offering period, multiplied by 1 - the discount rate.
-        - This model assumes the stock is sold at the end of the offering period. This often doesn't match the real world, as there is a delay to selling the stock.
-	</div>
-    <div id="input-parameters">
-        <h2>Input Parameters</h2>
-        <p>Each company's stock and ESPP is different. In order to understand how to best use a ESPP, you need to identify certain variables that impact the value of a ESPP.</p>
-        <div>
-            <h3>Employee Stock Purchase Plan Parameters</h3>
-            <p>These parameters are about what your company is offering in the purchase plan.</p>
-            <div class="user-input">
-                <label for="company">Company Stock Ticker</label>
-                <input type="text" id="company" name="company" >
-                <br><br>
-            </div>
-            <div class="user-input">
-                <label for="discount_rate">Discount Rate for ESPP shares</label>
-                <input type="number" id="discount_rate" name="discount_rate" step="any" min="0" max="1" placeholder="0.1">
-                <span class="tooltip">❓
-                        <span class="tooltip-text">The percent discount the shares can be purchased for through the ESPP. If an employee gets 10% of a share, enter 0.1.</span>
-                </span>
-                <br><br>
-            </div>
-            <div class="user-input">
-                <label for="offering_periods">Number of offering periods</label>
-                <input type="number" id="offering_periods" name="offering_periods" min="0" placeholder="2">
-                <span class="tooltip">❓
-                    <span class="tooltip-text">The number of periods where employees can purchase stock. If stocks are purchased in June and Decemeber, there are 2 offering periods.</span>
-                </span>
-                <br><br>
-            </div>
-            <div class="user-input">
-                <label for="pay_periods_per_offering">Pay periods per offering</label>
-                <input type="number" id="pay_periods_per_offering" name="pay_periods_per_offering" min="1" placeholder="12">
-                <span class="tooltip">❓
-                    <span class="tooltip-text">The number of pay periods where money is put into the ESPP. This is important because each pay period represents a point where an employee can change their contributions.</span>
-                </span>
-                <br><br>
-            </div>
-            <div class="user-input">
-                <label for="cost_to_sell">Cost to sell</label>
-                <input type="number" id="cost_to_sell" name="cost_to_sell" min="1" placeholder="12">
-                <span class="tooltip">❓
-                    <span class="tooltip-text">The cost to sell the stock after the purchase period. Usually negligible, but worth noting.</span>
-                </span>
-                <br><br>
-            </div>
-        </div>
-        <div>
-            <h3>Employee Strategy Parameters</h3>
-            <p>These parameters are about how you are able to use your companies ESPP plan.</p>
-            <div class="user-input">
-                <label for="maximum_contribution">Maximum Contribution</label>
-                <input type="number" id="maximum_contribution" name="maximum_contribution" step="any" min="0" placeholder="10000">
-                <span class="tooltip">❓
-                    <span class="tooltip-text">
-                        The maximum amount you can contribute to the plan in a given year.
-                        This can technically be over the IRS limits of 25K, because if your company
-                        lets you contribute 10% of your post-tax income and you make 500K, your max contribtution
-                        would be 50K. If you don't know, you can use the last contributed amount in your ESPP
-                        and multiple that by the number of offering periods (assuming max contributions).
-                    </span>
-                </span>
-                <br><br>
-            </div>
-            <div class="user-input">
-                <label for="steps_to_zero">Steps to Zero</label>
-                <input type="number" id="steps_to_zero" name="steps_to_zero" min="1" placeholder="1">
-                <span class="tooltip">❓
-                    <span class="tooltip-text">
-                        This represents a scenario where you can only pick a percent to contribute (say 15%),
-                        and then when you want to decrease it, the amount can only be lowered to 14%,13%...
-                    </span>
-                </span>
-                <br><br>
-            </div>
-            <div class="user-input">
-                <label for="liquidity_preference">Liquidity Preference Rate</label>
-                <input type="number" id="liquidity_preference" name="liquidity_preference" min="0" placeholder="0.05">
-                <span class="tooltip">❓
-                    <span class="tooltip-text">
-                        How much you value having money in your bank account now vs. waiting for the ESPP to mature.
-                        This is important to differentiate situations where you overcontribute to the ESPP and get a refund at the end of the year.
-                        Although the end result is still the same, you lost out on an investment period with the overcommitted money.
-                        In calculations, this is assumed to be untaxed.
-                        For 5%, enter 0.05.
-                    </span>
-                </span>
-                <br><br>
-            </div>
-            <div class="user-input">
-                <label for="capital_gains_tax_rate">Capital Gains Tax Rate</label>
-                <input type="number" id="capital_gains_tax_rate" name="capital_gains_tax_rate" min="0" placeholder="0.05">
-                <span class="tooltip">❓
-                    <span class="tooltip-text">
-                        This calculation assumes you sell the stocks at the end of the offering period in order to
-                        realize gains and diversify your portfolio. As such this is the capital gains tax bracket of the year which stocks are purchased.
-                        This currently doesn't take into account when capital gains will be paid.
-                    </span>
-                </span>
-                <br><br>
-            </div>
-        </div>
-        <div>
-            <h3>Company Stock Parameters</h3>
-            <p>This defines the behavior of the stock itself. This is important because </p>
-            <button id="results" onclick="getStockData()">Fetch stock price and volatility</button>
-            <div class="user-input">
-                <label for="initial_price">Initial Price of Stock</label>
-                <input type="number" id="initial_price" name="initial_price" step="any" min="0" placeholder="40.0">
-                <br><br>
-            </div>
-            <div class="user-input">
-                <label for="volatility">Stock Volatility</label>
-                <input type="number" id="volatility" name="volatility" step="any" placeholder="10">
-                <span class="tooltip">❓
-                        <span class="tooltip-text">The standard deviation of the stock's returns, representing its risk.</span>
-                </span>
-                <br><br>
-            </div>
-            <div class="user-input">
-                <label for="expected_ror">Expected rate of return</label>
-                <input type="number" id="expected_ror" name="expected_ror" step="any" placeholder="0.1">
-                <span class="tooltip">❓
-                        <span class="tooltip-text">This represents the expected rate of return of your companies stock. Generally, as the risk of a stock increases, the expected rate of return increases. If the expected rate of return is 25%, enter 0.25.</span>
-                </span>
-                <p>To find the expected rate of return according to the Capital Asset Pricing Model, find your company's stock on <a href="https://www.stock-analysis-on.net/">https://www.stock-analysis-on.net/</a> CVS Health's stock is at <a href="https://www.stock-analysis-on.net/NYSE/Company/CVS-Health-Corp/DCF/CAPM">https://www.stock-analysis-on.net/NYSE/Company/CVS-Health-Corp/DCF/CAPM</a></p>
-                <br><br>
-            </div>
-        </div>
+<body class="bg-gray-200 min-h-screen flex flex-col p-4 max-w-screen-lg mx-auto">
+    <div class="flex-1 flex flex-col gap-4 mb-4 text-center">
+        <h2 style="font-weight: bold; color: #2c3e50; font-size: 1.35em;">Stock Purchase Information</h2>
+        <p>
+            A company's Employee Stock Purchase Plan (ESPP) represents a potentially great benefit that can add a thousands of dollars to your net income every year.
+            By understanding how your company's ESPP works, you can make an educated decision about how much you should contribute.
+        </p>
+        <p>
+            Each company's stock and ESPP is different, along with an employee's ability to contribute.
+            In order to see how valuable an ESPP is to you, let's enter some information about your company's ESPP and your personal preferences.
+        </p>
     </div>
-    <div>
-        <button id="results" onclick="getResults()">Fetch stock strategy results</button>
-        <button id="fetch-series" style="visibility: hidden;" onclick="fetchCSV()">Fetch time series data used to model results</button>
-    </div>
-    <div>
-        <h2>Strategies</h2>
-        <div id="strategy_list">
-            <!-- Sample div. Will get created by API call dynamically
-                <div class="container_strategies">
-                    <div id="Max_all_the_way" class="box_strategies">
-                        <h3>
-                            Full Contribution
-                        </h3>
-                        <p>
-                            This strategy is about contributing as much money as possible to the ESPP. For most people, this is the best strategy, as it requires
-                            little maintainence and you will still get most of the benefit of the ESPP.
-                        </p>
-                    <div class="box_strategies">Box 2</div>
-                    <div class="box_strategies">Box 3</div>
+	
+    <div id="top" style="margin-top: 1em;" class="flex-1 flex flex-col md:flex-row gap-4 mb-4">
+        <div id="left-top" class="md:w-1/2">
+            <div id="input-parameters">
+                <div id="espp-parameters" class="bg-blue-200 p-4">
+                    <h3 style="font-weight: bold; color: #2c3e50; font-size: 1.15em;">
+                        Employee Stock Purchase Plan Parameters
+                    </h3>
+                    <p class="my-4">What is the structure of your company's ESPP?</p>
+                    <div class="user-input">
+                        <label for="company">Company Stock Ticker:</label>
+                        <input type="text" id="company" name="company">
+                    </div>
+                    <div class="user-input-tooltip">
+                        <label for="discount_rate">Discount % for shares:</label>
+                        <span class="tooltip">❓
+                            <span class="tooltip-text">The percent discount the shares can be purchased for through the ESPP. If an employee gets 10% off a share, enter 0.1.</span>
+                        </span>
+                        <input type="number" id="discount_rate" name="discount_rate" step="any" min="0" max="1" placeholder="0.1">
+                    </div>
+                    <div class="user-input-tooltip">
+                        <label for="offering_periods">No. of offering periods: </label>
+                        <span class="tooltip">❓
+                            <span class="tooltip-text">The number of periods where employees can purchase stock. If stocks are purchased in June and December, there are 2 offering periods.</span>
+                        </span>
+                        <input type="number" id="offering_periods" name="offering_periods" min="0" placeholder="2">
+                    </div>
+                    <div class="user-input-tooltip">
+                        <label for="pay_periods_per_offering">Pay periods per offering</label>
+                        <span class="tooltip">❓
+                            <span class="tooltip-text">The number of pay periods where money is put into the ESPP. This is important because each pay period represents a point where an employee can change their contributions.</span>
+                        </span>
+                        <input type="number" id="pay_periods_per_offering" name="pay_periods_per_offering" min="1" placeholder="12">
+                    </div>
                 </div>
-            -->
+                <div id="stock-parameters" class="bg-blue-200 p-4">
+                    <h3 style="font-weight: bold; color: #2c3e50; font-size: 1.15em;">Company Stock Parameters</h3>
+                    <p class="my-4">What are the fundamentals of the stock? <br>This is important because more volatile stocks will have a higher expected rate of return, which will increase the benefit of the ESPP.</p>
+                    <div style="text-align: center;">
+                        <button id="volatility_button" onclick="getStockData()" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Fetch stock price and volatility</button>
+                    </div>
+                    <div id="volatility_error_message" style="visibility: hidden; color: red;">Error: No stock ticker passed</div>
+                    <div class="user-input">
+                        <label for="initial_price">Initial Price of Stock</label>
+                        <input type="number" id="initial_price" name="initial_price" step="any" min="0" placeholder="40.0">
+                    </div>
+                    <div class="user-input-tooltip">
+                        <label for="volatility">Stock Volatility</label>
+                        <span class="tooltip">❓
+                            <span class="tooltip-text">The standard deviation of the stock's returns, representing its risk.</span>
+                        </span>
+                        <input type="number" id="volatility" name="volatility" step="any" placeholder="10">
+                    </div>
+                    <div class="user-input-tooltip">
+                        <label for="expected_ror">Expected rate of return</label>
+                        <span class="tooltip">❓
+                            <span class="tooltip-text">This represents the expected rate of return of your company's stock. Generally, as the risk of a stock increases, the expected rate of return increases. If the expected rate of return is 25%, enter 0.25.</span>
+                        </span>
+                        <input type="number" id="expected_ror" name="expected_ror" step="any" placeholder="0.1">
+                    </div>
+                </div>
+                <div id="espp-parameters" class="bg-blue-200 p-4">
+                    <h3 style="font-weight: bold; color: #2c3e50; font-size: 1.15em;">Employee Situation Details</h3>
+                    <p class="my-4">What is your situation as it relates to your ESPP?</p>
+                    <div class="user-input-tooltip">
+                        <label for="maximum_contribution">Maximum Contribution</label>
+                        <span class="tooltip">❓
+                            <span class="tooltip-text">
+                                The maximum amount you can contribute to the plan in a given year.
+                                This can technically be over the IRS limits of 25K, because if your company
+                                lets you contribute 10% of your post-tax income and you make 500K, your max contribtution
+                                would be 50K. If you don't know, you can use the last contributed amount in your ESPP
+                                and multiple that by the number of offering periods (assuming max contributions).
+                            </span>
+                        </span>
+                        <input type="number" id="maximum_contribution" name="maximum_contribution" step="any" min="0" placeholder="10000">
+                    </div>
+                    
+                    <div class="user-input-tooltip">
+                        <label for="liquidity_preference">Liquidity Preference Rate</label>
+                        <span class="tooltip">❓
+                            <span class="tooltip-text">
+                                How much you value having money in your bank account now vs. waiting for the ESPP to mature.
+                                This is important to differentiate situations where you overcontribute to the ESPP and get a refund at the end of the year.
+                                Although the end result is still the same, you lost out on an investment period with the overcommitted money.
+                                In calculations, this is assumed to be untaxed.
+                                For 5%, enter 0.05.
+                            </span>
+                        </span>
+                        <input type="number" id="liquidity_preference" name="liquidity_preference" min="0" placeholder="0.05">
+                    </div>
+                    <div class="user-input-tooltip">
+                        <label for="capital_gains_tax_rate">Capital Gains Tax Rate</label>
+                        <span class="tooltip">❓
+                            <span class="tooltip-text">
+                                This calculation assumes you sell the stocks at the end of the offering period in order to
+                                realize gains and diversify your portfolio. As such this is the capital gains tax bracket of the year which stocks are purchased.
+                                This currently doesn't take into account when capital gains will be paid.
+                            </span>
+                        </span>
+                        <input type="number" id="capital_gains_tax_rate" name="capital_gains_tax_rate" min="0" placeholder="0.05">
+                    </div>
+                </div>
+                
+            </div>
+            <div>
+                <button id="results" onclick="getResults()">Fetch stock strategy results</button>
+                <button id="fetch-series" style="visibility: hidden;" onclick="fetchCSV()">Fetch time series data used to model results</button>
+            </div>
+        </div>
+        <div id="right-top" class="md:w-1/2">
+            <h2>Strategies</h2>
+            <div id="strategy_list">
+                <!-- Sample div. Will get created by API call dynamically
+                    <div class="container_strategies">
+                        <div id="Max_all_the_way" class="box_strategies">
+                            <h3>
+                                Full Contribution
+                            </h3>
+                            <p>
+                                This strategy is about contributing as much money as possible to the ESPP. For most people, this is the best strategy, as it requires
+                                little maintainence and you will still get most of the benefit of the ESPP.
+                            </p>
+                        <div class="box_strategies">Box 2</div>
+                        <div class="box_strategies">Box 3</div>
+                    </div>
+                -->
+            </div>
         </div>
     </div>
-    <div>
+    <div id="bottom" class="mt-auto pt-4 border-t border-gray-300">
+        <div>
+            Assumptions:
+            - Assumes stocks are purchased at the smaller of the price at the beginning of the offering period or the price at the end of the offering period, multiplied by 1 - the discount rate.
+            - This model assumes the stock is sold at the end of the offering period. This often doesn't match the real world, as there is a delay to selling the stock.
+        </div>
+        <div>
+            <h2>Implementation Details</h2>
+            <p>You can find the source code for the stock strategies at my GitHub repository:</p>
+            <a href="https://github.com/mcsj120/employee-stock-purchase-plan-strategy" target="_blank">GitHub Repository</a>
+        </div>
         <div>
             <h2>Suggestions</h2>
             <p>Suggestions on new strategies or ways to improve the system are greatly appreciated!</p>
@@ -245,11 +276,6 @@
             Suggestions:<input type="text" id="suggestions" name="suggestions"/>
             <br>
             <button onclick="sendSuggestion()">Submit suggestion</button>    
-        </div>
-        <div>
-            <h2>Implementation Details</h2>
-            <p>You can find the source code for the stock strategies at my GitHub repository:</p>
-            <a href="https://github.com/mcsj120/employee-stock-purchase-plan-strategy" target="_blank">GitHub Repository</a>
         </div>
     </div>
 
@@ -358,7 +384,7 @@
         let discount_rate = document.querySelector("#discount_rate").value;
         let offering_periods = document.querySelector("#offering_periods").value;
         let pay_periods_per_offering = document.querySelector("#pay_periods_per_offering").value;
-        let cost_to_sell = document.querySelector("#cost_to_sell").value;
+        //let cost_to_sell = document.querySelector("#cost_to_sell").value;
 
         // Company Stock Parameters
         let initial_price = document.querySelector("#initial_price").value;
@@ -367,7 +393,7 @@
 
         // Employee Options
         let maximum_contribution = document.querySelector("#maximum_contribution").value;
-        let steps_to_zero = document.querySelector("#steps_to_zero").value;
+        //let steps_to_zero = document.querySelector("#steps_to_zero").value;
         let liquidity_preference_rate = document.querySelector("#liquidity_preference").value;
         let capital_gains_tax_rate = document.querySelector("#capital_gains_tax_rate").value;
 
@@ -383,11 +409,11 @@
                 "discount_rate": discount_rate,
                 "offering_periods": offering_periods,
                 "pay_periods_per_offering": pay_periods_per_offering,
-                "cost_to_sell": cost_to_sell
+                "cost_to_sell": 0
             },
             "employee_options":{
                 "max_contribution": maximum_contribution,
-                "steps_to_zero": steps_to_zero,
+                "steps_to_zero": 0,
                 "liquidity_preference_rate": liquidity_preference_rate,
                 "capital_gains_tax_rate": capital_gains_tax_rate
             }
