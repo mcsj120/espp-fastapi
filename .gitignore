@@ -1,4 +1,5 @@
 *.csv
+*.png
 config*.json
 stock_histories/stock_data*.json
 

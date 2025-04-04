@@ -1,7 +1,9 @@
 from datetime import datetime
 import os
 import sys
-from typing import Dict, Any
+import base64
+import math
+from typing import Dict, Any, Optional
 import uuid
 from contextlib import asynccontextmanager
 
@@ -22,7 +24,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from models.company_plan import CompanyStockPlan
 from models.company_stock_start_parameters import CompanyStockStartParameters
 from models.employee_options import EmployeeOptions
-from stock_price import generate_scenarios, run_strategies_against_scenarios
+from stock_price import generate_scenarios, run_scenarios_against_strategies
+from strategies import get_core_strategies, get_all_strategies
 import json
 
 
@@ -51,7 +54,24 @@ app.mount("/static", StaticFiles(directory=os.path.join(os.path.dirname(__file__
 @main_router.get("/", response_class=HTMLResponse)
 async def read_index():
     with open(os.path.join(os.path.dirname(__file__), 'static', 'index.html'), 'r', encoding='utf-8') as file:
-        return HTMLResponse(content=file.read())
+        content = file.read()
+        insert_position_no_contribution_pic_bytes = content.find('id="no_contribution_pic_bytes"')
+        if insert_position_no_contribution_pic_bytes != -1:
+            content = content[:insert_position_no_contribution_pic_bytes] + ' src="/static/No contribution to ESPP_roi_distribution.png" ' + content[insert_position_no_contribution_pic_bytes:]
+        else:
+            print("No location for contribution pic bytes found in html file")
+        
+        insert_position_max_contribution_pic_bytes = content.find('id="max_contribution_pic_bytes"')
+        if insert_position_max_contribution_pic_bytes != -1:
+            content = (
+                content[:insert_position_max_contribution_pic_bytes] + 
+                ' src="/static/Max contribution to ESPP with company and IRS blocking overpayment_roi_distribution.png" ' + 
+                content[insert_position_max_contribution_pic_bytes:]
+            )
+        else:
+            print("No location for max contribution pic bytes found in html file")
+
+        return HTMLResponse(content=content)
     
 @main_router.get("/strategies", response_class=JSONResponse)
 async def read_strategies():
@@ -77,6 +97,9 @@ async def get_stock_data(ticker: str):
             return HTMLResponse(content=file.read())
 
     async with httpx.AsyncClient() as client:
+        import time
+        time.sleep(10)
+        return JSONResponse(content={})
         response = await client.get(f'https://esppvalue.com/stock-data/?ticker={ticker}')
         if response.status_code == 200:
             response_json = response.json()
@@ -102,10 +125,10 @@ async def get_time_series(job_id: str):
     return FileResponse(file_path, media_type="text/csv", filename="time_series.csv")
 
 @main_router.post("/stock_run")
-async def generate_stock_run(request: StockRequest, job_id: str = None):
+async def generate_stock_run(request: StockRequest, strategies: Optional[str] = None, job_id: Optional[str] = None):
     company_stock_plan = CompanyStockPlan(
         name=request.employee_stock_plan.company,
-        discount_rate=request.employee_stock_plan.discount_rate,
+        discount_rate=round(1 - request.employee_stock_plan.discount_rate, 2),
         offering_periods=request.employee_stock_plan.offering_periods,
         pay_periods_per_offering=request.employee_stock_plan.pay_periods_per_offering,
         cost_to_sell=request.employee_stock_plan.cost_to_sell
@@ -136,14 +159,43 @@ async def generate_stock_run(request: StockRequest, job_id: str = None):
             company_stock_start_parameters,
             file_name=f"prices_{job_id}"
         )
+
+    if strategies is None or strategies == "simple":
+        pulled_strategies = get_core_strategies()
+    else:
+        pulled_strategies = get_all_strategies()
     
-    response = run_strategies_against_scenarios(price_sets, employee_options)
-    response["job_id"] = job_id
-    return response
+    response = run_scenarios_against_strategies(price_sets, employee_options, pulled_strategies)
+    for result in response:
+        if 'strategy' in result:
+            result['strategy'] = result['strategy'].__name__
+        result['espp_result'] = {
+            "baseline_value_sum": result['espp_result'].baseline_value_sum,
+            "total_value_sum": result['espp_result'].total_value_sum,
+            "money_contributed_sum": result['espp_result'].money_contributed_sum,
+            "roi_sum": result['espp_result'].roi_sum,
+            "money_refunded_sum": result['espp_result'].money_refunded_sum,
+            "espp_return_sum": result['espp_result'].espp_return_sum,
+            "baseline_value": result['espp_result'].baseline_value,
+            "total_value": result['espp_result'].total_value,
+            "money_contributed": result['espp_result'].money_contributed,
+            "roi": result['espp_result'].roi,
+            "money_refunded": result['espp_result'].money_refunded,
+            "espp_return": result['espp_result'].espp_return
+        }
+        if 'pic_bytes' in result:
+            result['pic_bytes'] = base64.b64encode(result['pic_bytes']).decode('utf-8')
+        
+
+    response_value = {
+        "job_id": job_id,
+        "results": response
+    }
+    return JSONResponse(content=response_value)
 
 @main_router.post("/suggestions")
-async def recieve_suggestion(suggestion: Suggestion):
-    if suggestion is None:
+async def receive_suggestion(suggestion: Suggestion):
+    if suggestion is None or len(suggestion.suggestion) == 0:
         return JSONResponse(content={"error": "No suggestion passed"}, status_code=400)
     
     query = """
