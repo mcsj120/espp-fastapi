@@ -2,7 +2,7 @@ from datetime import datetime
 import os
 import sys
 import base64
-from typing import Dict, Any, Optional
+from typing import Optional
 import uuid
 from contextlib import asynccontextmanager
 
@@ -28,8 +28,6 @@ from stock_price import generate_scenarios, run_scenarios_against_strategies
 
 from strategies import get_core_strategies, get_all_strategies
 import json
-
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -105,12 +103,15 @@ async def get_stock_data(ticker: str):
         return JSONResponse(content={"error": "Ticker is not alphabetic"}, status_code=400)
     
     # Passing in today as a parameter to easily utilize lru_cache
-    today = datetime.now()
+    today = datetime.now().strftime('%Y-%m-%d')
     try:
         stock_price, volatility = await get_stock_price_and_volatility(ticker, today)
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
 
+    #convert the error to a string so it can be sent to the frontend
+    if type(volatility) != float:
+        volatility = str(volatility)
     return JSONResponse(content={"stock_price": stock_price, "volatility": volatility})
 
 @main_router.get("/time_series", response_class=JSONResponse)

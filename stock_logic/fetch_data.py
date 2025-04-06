@@ -50,22 +50,31 @@ def cache_with_expiry(maxsize=2048, expiry=timedelta(days=2)):
     return decorator
 
 @cache_with_expiry(maxsize=2048, expiry=timedelta(days=2))
-async def get_stock_price_and_volatility(ticker: str, today: datetime) -> tuple[float, float]:
-    # Convert datetime to string for consistent caching
-    today_str = today.strftime('%Y-%m-%d')
+async def get_stock_price_and_volatility(ticker: str, today: str) -> tuple[float, float]:
     stock_price, err = await get_stock_price(ticker, today)
     if err is not None:
         raise Exception(err)
-    options_contract = await get_options_contract_for_iv(ticker, stock_price, today)
-    risk_free_rate = await get_one_year_risk_free_rate(today)
+    volatility = None
+    try:
+        # The function can still throw an exception, but if we return an error message,
+        # the result of the function will be cached.
+        options_contract, err = await get_options_contract_for_iv(ticker, stock_price, today)
+        if err is not None:
+            raise Exception(err)
 
-    volatility = implied_volatility(
-        stock_price,
-        options_contract["strike_price"],
-        (datetime.strptime(options_contract["expiration_date"], '%Y-%m-%d') - today).days
-            / 365,
-        risk_free_rate,
-        options_contract["c"]
-    )
+        risk_free_rate = await get_one_year_risk_free_rate(today)
+
+        today_dt = datetime.strptime(today, '%Y-%m-%d')
+        volatility = implied_volatility(
+            stock_price,
+            options_contract["strike_price"],
+            (datetime.strptime(options_contract["expiration_date"], '%Y-%m-%d') - today_dt).days
+                / 365,
+            risk_free_rate,
+            options_contract["c"]
+        )
+    except Exception as e:
+        print(f"Error getting volatility: {e}")
+        volatility = e
 
     return (stock_price, volatility)

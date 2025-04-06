@@ -1,31 +1,34 @@
 from datetime import datetime, timedelta
 from typing import Tuple, Optional
 
+from async_lru import alru_cache
+
 from utils.api_request import LocalClient
 from utils.config import Config
 
-from functools import lru_cache
-
-@lru_cache(maxsize=2048)
-async def get_stock_price(ticker: str, today: datetime) -> Tuple[Optional[float], Optional[str]]:
+@alru_cache(maxsize=2048)
+async def get_stock_price(ticker: str, today: str) -> Tuple[Optional[float], Optional[str]]:
     """
     Get the current stock price. Using custom bars allows us to not worry about the day of the week and if the stock market is open
     Information: https://polygon.io/docs/rest/stocks/aggregates/custom-bars
     """
-    from_date = (today - timedelta(days=7)).strftime('%Y-%m-%d')
-    to_date = (today - timedelta(days=1)).strftime('%Y-%m-%d')
+    today_dt = datetime.strptime(today, '%Y-%m-%d')
+    from_date = (today_dt - timedelta(days=7)).strftime('%Y-%m-%d')
+    to_date = (today_dt - timedelta(days=1)).strftime('%Y-%m-%d')
     url = f"https://api.polygon.io/v2/aggs/ticker/{ticker}/range/1/day/{from_date}/{to_date}?adjusted=true&sort=desc&limit=5&apiKey={Config.get_polygon_api_key()}"
 
     data = await LocalClient.get_api_request(url)
 
+    if data.get("results") is None:
+        raise Exception(f"Error calling API. Unable to get stock price. Please try again shortly.")
     # If the results are empty, we want to cache it because the data pull query is bad, like an invalid stock.
-    if data.get("results") is None or len(data["results"]) == 0:
+    if len(data["results"]) == 0:
         return None, f"No data found for the contract {ticker}"
 
     return data["results"][0]["c"], None
 
-@lru_cache(maxsize=2048)
-async def get_options_contract_for_iv(ticker: str, stock_price: float, today_dt: datetime):
+@alru_cache(maxsize=2048)
+async def get_options_contract_for_iv(ticker: str, stock_price: float, today: str) -> Tuple[Optional[dict], Optional[str]]:
     """
         We will get implied volatility by looking at an options contract one year from now. Get contract with the closest strike price to the stock price
             and the closest to 1 year from now. Union between the two APIs
@@ -53,17 +56,22 @@ async def get_options_contract_for_iv(ticker: str, stock_price: float, today_dt:
                     "t": 1743480000000,
                     "n": 68
                 }
+            exception: Optional[str]:
+                Error message from the API.
     """
-
+    today_dt = datetime.strptime(today, '%Y-%m-%d')
     #Looking for the closest contract about 1 year from now
     to_date = (today_dt.replace(year=datetime.now().year + 1) - timedelta(weeks=4)).strftime('%Y-%m-%d')
-    today = today_dt.strftime('%Y-%m-%d')
 
     url = f"https://api.polygon.io/v3/reference/options/contracts?underlying_ticker={ticker}&contract_type=call&expiration_date.gte={to_date}&order=asc&limit=100&sort=expiration_date&apiKey={Config.get_polygon_api_key()}"
     data = await LocalClient.get_api_request(url)
 
-    if data.get("results") is None or len(data["results"]) == 0:
-        raise Exception(f"No contracts found for the ticker {ticker}")
+    if data.get("results") is None:
+        print(data)
+        raise Exception(f"Error calling API. Unable to get options contracts. Please try again shortly.")
+
+    if len(data["results"]) == 0:
+        return None, f"No options contracts found for the ticker {ticker}. Unable to get implied volatility."
 
     date_of_closest_contract = None
     contract = {}
@@ -84,9 +92,12 @@ async def get_options_contract_for_iv(ticker: str, stock_price: float, today_dt:
     url = f"https://api.polygon.io/v2/aggs/ticker/{contract['ticker']}/range/1/day/{from_date}/{to_date}?adjusted=true&sort=desc&limit=1&apiKey={Config.get_polygon_api_key()}"
     data = await LocalClient.get_api_request(url)
 
-    if data.get("results") is None or len(data["results"]) == 0:
-        raise Exception(f"No data found for the optionscontract {contract['ticker']}")
+    if data.get("results") is None:
+        raise Exception(f"Error calling API. Unable to get options contract data. Please try again shortly.")
+
+    if len(data["results"]) == 0:
+       return None, f"No data found for the options contract {contract['ticker']}. Unable to get implied volatility."
 
     contract = contract | data["results"][0]
 
-    return contract
+    return contract, None

@@ -384,8 +384,14 @@
                 return;
             }
             document.querySelector("#initial_price").value = data.stock_price;
-            document.querySelector("#volatility").value = data.volatility.toFixed(4);
+            if (typeof data.volatility !== 'number') {
+                create_error_message(`Error fetching volatility: ${data.volatility}`);
+            } else {
+                remove_error_message();
+                document.querySelector("#volatility").value = data.volatility.toFixed(4);
+            }
         }).catch((error) => {
+            scenario_run_in_progress = false;
             create_error_message("Error fetching stock data");
             console.log(error);
         });
@@ -523,6 +529,10 @@
             }
             job_id = data.job_id;
             document.getElementById("fetch-series").style.visibility = "visible";
+        }).catch((error) => {
+            scenario_run_in_progress = false;
+            create_error_message("Error fetching stock data");
+            console.log(error);
         });
     }
 
