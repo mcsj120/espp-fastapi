@@ -2,12 +2,9 @@ from datetime import datetime
 import os
 import sys
 import base64
-import math
 from typing import Dict, Any, Optional
 import uuid
 from contextlib import asynccontextmanager
-
-
 
 from fastapi import APIRouter, FastAPI
 from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
@@ -18,6 +15,9 @@ import numpy as np
 
 from base_models.base_model_requests import StockRequest
 from base_models.suggestion import Suggestion
+from utils.api_request import LocalClient
+from utils.config import Config
+from stock_logic.fetch_data import get_stock_price_and_volatility
 
 # Add the parent directory of 'models' to the Python path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -25,8 +25,10 @@ from models.company_plan import CompanyStockPlan
 from models.company_stock_start_parameters import CompanyStockStartParameters
 from models.employee_options import EmployeeOptions
 from stock_price import generate_scenarios, run_scenarios_against_strategies
+
 from strategies import get_core_strategies, get_all_strategies
 import json
+
 
 
 @asynccontextmanager
@@ -34,6 +36,11 @@ async def lifespan(app: FastAPI):
     config_path = os.path.join(os.path.dirname(__file__), 'config-local.json')
     with open(config_path, 'r') as config_file:
         config = json.load(config_file)
+        Config()
+        Config.set_polygon_api_key(config['polygon_api_key'])
+        Config.set_fred_api_key(config['fred_api_key'])
+    
+    LocalClient()
 
     app.state.pool = await asyncpg.create_pool(
         user=config['username'],
@@ -42,10 +49,20 @@ async def lifespan(app: FastAPI):
         host=config['host'],
         port=config['port']
     )
+
     yield
     await app.state.pool.close()
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(
+    lifespan=lifespan,
+    #TODO: figure out how to reload when espp python code changes
+    # reload_dirs=[
+    #     "espp_fastapi", 
+    #     "models", 
+    #     "strategies",
+    #     os.path.dirname(os.path.dirname(__file__))  # Parent directory
+    # ]
+)
 main_router = APIRouter()
 
 static_dir = "/static"
@@ -87,36 +104,18 @@ async def get_stock_data(ticker: str):
     elif not ticker.isalpha():
         return JSONResponse(content={"error": "Ticker is not alphabetic"}, status_code=400)
     
-    today_date = datetime.now().strftime("%Y-%m-%d")
+    # Passing in today as a parameter to easily utilize lru_cache
+    today = datetime.now()
+    try:
+        stock_price, volatility = await get_stock_price_and_volatility(ticker, today)
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=500)
 
-    file_name = f'stock_data-{ticker}-{today_date}.json'
-    file_path = os.path.join(os.path.dirname(__file__), 'stock_histories', file_name)
-
-    if os.path.exists(file_path):
-        with open(file_path, 'r', encoding='utf-8') as file:
-            return HTMLResponse(content=file.read())
-
-    async with httpx.AsyncClient() as client:
-        import time
-        time.sleep(10)
-        return JSONResponse(content={})
-        response = await client.get(f'https://esppvalue.com/stock-data/?ticker={ticker}')
-        if response.status_code == 200:
-            response_json = response.json()
-            response_json.pop('price_history', None)
-            response_json.pop('daily_percent_changes', None)
-            response_json.pop('dates', None)
-            
-            with open(file_path, 'w', encoding='utf-8') as json_file:
-                json.dump(response_json, json_file, ensure_ascii=False, indent=4)
-            return response.json()
-        else:
-            return JSONResponse(content={"error": "Failed to fetch stock data"}, status_code=response.status_code)
-    
+    return JSONResponse(content={"stock_price": stock_price, "volatility": volatility})
 
 @main_router.get("/time_series", response_class=JSONResponse)
 async def get_time_series(job_id: str):
-    if job_id is None:
+    if job_id is None or len(job_id) == 0:
         return JSONResponse(content={"error": "No job_id passed"}, status_code=400)
     
     file_path = os.path.join(os.path.dirname(__file__), f"prices_{job_id}.csv")

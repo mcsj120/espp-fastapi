@@ -22,17 +22,42 @@
 <p>To find the expected rate of return according to the Capital Asset Pricing Model, find your company's stock on <a href="https://www.stock-analysis-on.net/">https://www.stock-analysis-on.net/</a> CVS Health's stock is at <a href="https://www.stock-analysis-on.net/NYSE/Company/CVS-Health-Corp/DCF/CAPM">https://www.stock-analysis-on.net/NYSE/Company/CVS-Health-Corp/DCF/CAPM</a></p>
 
 
-                <!-- Sample div. Will get created by API call dynamically
-                    <div class="container_strategies">
-                        <div id="Max_all_the_way" class="box_strategies">
-                            <h3>
-                                Full Contribution
-                            </h3>
-                            <p>
-                                This strategy is about contributing as much money as possible to the ESPP. For most people, this is the best strategy, as it requires
-                                little maintainence and you will still get most of the benefit of the ESPP.
-                            </p>
-                        <div class="box_strategies">Box 2</div>
-                        <div class="box_strategies">Box 3</div>
-                    </div>
-                -->
+<!-- Sample div. Will get created by API call dynamically
+    <div class="container_strategies">
+        <div id="Max_all_the_way" class="box_strategies">
+            <h3>
+                Full Contribution
+            </h3>
+            <p>
+                This strategy is about contributing as much money as possible to the ESPP. For most people, this is the best strategy, as it requires
+                little maintainence and you will still get most of the benefit of the ESPP.
+            </p>
+        <div class="box_strategies">Box 2</div>
+        <div class="box_strategies">Box 3</div>
+    </div>
+-->
+
+<!-- 
+// Get the strategy name and description from an API call
+// sendGetRequest("http://localhost:8000/strategies").then((data) => {
+//     console.log(data);
+//     let strategies = data;
+//     let container = document.querySelector("#strategy_list");
+//     let currentContainer = container;
+//     strategies.forEach((strategy, index) => {
+//         if (index % 3 === 0 && index !== 0) {
+//             currentContainer = document.createElement("div");
+//             currentContainer.classList.add("container_strategies");
+//             container.parentNode.appendChild(currentContainer);
+//         }
+//         let box = document.createElement("div");
+//         box.id=strategy.name.replace(" ", "_");
+//         box.classList.add("box_strategies");
+//         box.innerHTML = `<h3>${strategy.name}</h3><p>${strategy.description}</p>`;
+//         box.addEventListener("click", () => {
+//             selectedStrategy = box.id;
+//             console.log("Selected Strategy:", selectedStrategy);
+//         });
+//         currentContainer.appendChild(box);
+//     });
+// }); -->

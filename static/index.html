@@ -27,13 +27,24 @@
             font-size: 20px;
         }
 
+        #error_message {
+            text-align: center;
+            color: red;
+            font-size: 1.2em;
+            font-weight: bold;
+            background-color: rgb(191, 219, 254);
+            padding: 16px;
+            border-radius: 8px;
+            border: 2px solid black;
+        }
+
         #top > div > div {
             outline: 2px solid #2c3e50;
             outline-offset: -2px;
             margin-bottom: 10px;
             background-color: rgb(191, 219, 254);
             padding: 16px;
-            border-radius: 8px; /* Added rounded curves */
+            border-radius: 8px;
         }
         
         .box-heading {
@@ -138,7 +149,7 @@
     </style>
 </head>
 <body class="bg-gray-200 min-h-screen flex flex-col p-4 max-w-screen-lg mx-auto">
-    <div class="flex-1 flex flex-col gap-4 mb-4 text-center">
+    <div id = "intro"class="flex-1 flex flex-col gap-4 mb-4 text-center">
         <h2 style="font-weight: bold; color: #2c3e50; font-size: 1.35em;">Stock Purchase Information</h2>
         <p>
             A company's Employee Stock Purchase Plan (ESPP) represents a potentially great benefit that can add thousands of dollars to your net income every year.
@@ -318,6 +329,7 @@
     </div>
 
 </body>
+<script src="static/utility.js"></script>
 <script>
 
     /*
@@ -334,102 +346,56 @@
 
     */
 
-    // Copied from r2r code, request.js
-    async function sendGetRequest(url){
-        let response = await fetch(url, {
-            method : "GET"
-        })
-        let text = await response.json()
-        return text;
+    var scenario_run_in_progress = false;
+
+    function create_error_message(message){
+        remove_error_message();
+        let error_message = document.createElement("div");
+        error_message.id = "error_message";
+        error_message.style.textAlign = "center";
+        error_message.style.color = "red";
+        error_message.style.fontSize = "1.2em";
+        error_message.innerHTML = message;
+        document.querySelector("body").insertBefore(error_message, document.querySelector("#top"));
     }
 
-    async function sendGetRequestFile(url) {
-        let response = await fetch(url, {
-            method: "GET"
-        });
-        if (response.status === 200) {
-            let blob = await response.blob();
-            let urlBlob = window.URL.createObjectURL(blob);
-            let a = document.createElement('a');
-            a.href = urlBlob;
-            a.download = 'time_series_data.csv'; // You can set the file name here
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            window.URL.revokeObjectURL(urlBlob);
-        } else {
-            let text = await response.json()
-            return text;
+    function remove_error_message(){
+        let error_message = document.querySelector("#error_message");
+        if(error_message){
+            error_message.remove();
         }
     }
 
-    async function sendPostRequest(url, data){
-        let response = await fetch(url, {
-            method : "POST",
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-        })
-        let text = await response.json()
-        return text
-    }
 
-    // Function to set a cookie
-    function setCookie(name, value, days) {
-        const d = new Date();
-        d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
-        let expires = "expires=" + d.toUTCString();
-        document.cookie = name + "=" + value + ";" + expires + ";path=/";
-    }
-
-    // Function to get a cookie
-    function getCookie(name) {
-        let nameEQ = name + "=";
-        let ca = document.cookie.split(';');
-        for (let i = 0; i < ca.length; i++) {
-            let c = ca[i];
-            while (c.charAt(0) === ' ') c = c.substring(1, c.length);
-            if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
-        }
-        return null;
-    }
-
-    job_id = null;
+    var job_id = null;
         
-    // Get the strategy name and description from an API call
-    // sendGetRequest("http://localhost:8000/strategies").then((data) => {
-    //     console.log(data);
-    //     let strategies = data;
-    //     let container = document.querySelector("#strategy_list");
-    //     let currentContainer = container;
-    //     strategies.forEach((strategy, index) => {
-    //         if (index % 3 === 0 && index !== 0) {
-    //             currentContainer = document.createElement("div");
-    //             currentContainer.classList.add("container_strategies");
-    //             container.parentNode.appendChild(currentContainer);
-    //         }
-    //         let box = document.createElement("div");
-    //         box.id=strategy.name.replace(" ", "_");
-    //         box.classList.add("box_strategies");
-    //         box.innerHTML = `<h3>${strategy.name}</h3><p>${strategy.description}</p>`;
-    //         box.addEventListener("click", () => {
-    //             selectedStrategy = box.id;
-    //             console.log("Selected Strategy:", selectedStrategy);
-    //         });
-    //         currentContainer.appendChild(box);
-    //     });
-    // });
-
     function getStockData(){
+        if(scenario_run_in_progress){
+            return;
+        }
+        scenario_run_in_progress = true;
         let company = document.querySelector("#company").value;
         let url = `http://localhost:8000/stock_data?ticker=${company}`;
         sendGetRequest(url).then((data) => {
-            document.querySelector("#initial_price").value = data.price;
-            document.querySelector("#volatility").value = data.volatility;
+            scenario_run_in_progress = false;
+            if("error" in data){
+                create_error_message(data.error);
+                console.log(data.error);
+                return;
+            }
+            document.querySelector("#initial_price").value = data.stock_price;
+            document.querySelector("#volatility").value = data.volatility.toFixed(4);
+        }).catch((error) => {
+            create_error_message("Error fetching stock data");
+            console.log(error);
         });
     }
+
     function getResults(button){
+        if(scenario_run_in_progress){
+            return;
+        }
+        
         // Employee Stock Purchase Plan Parameters
         let company = document.querySelector("#company").value || document.querySelector("#company").placeholder;
         let discount_rate = document.querySelector("#discount_rate").value || document.querySelector("#discount_rate").placeholder;
@@ -470,6 +436,7 @@
             }
 
         }).then((data) => {
+            scenario_run_in_progress = false;
             console.log(data);
             if(data.job_id === undefined){
                 return;
