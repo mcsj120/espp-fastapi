@@ -97,6 +97,8 @@ async def get_stock_data(ticker: str):
     elif not ticker.isalpha():
         return JSONResponse(content={"error": "Ticker is not alphabetic"}, status_code=400)
     
+    ticker = ticker.upper()
+    
     # Passing in today as a parameter to easily utilize lru_cache
     today = datetime.now().strftime('%Y-%m-%d')
     try:
