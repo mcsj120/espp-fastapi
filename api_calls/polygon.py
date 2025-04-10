@@ -1,13 +1,15 @@
 from datetime import datetime, timedelta
 from typing import Tuple, Optional
 
+import numpy as np
+
 from async_lru import alru_cache
 
 from utils.api_request import LocalClient
 from utils.config import Config
 
 @alru_cache(maxsize=2048)
-async def get_stock_price(ticker: str, today: str) -> Tuple[Optional[float], Optional[str]]:
+async def get_stock_price_now(ticker: str, today: str) -> Tuple[Optional[float], Optional[str]]:
     """
     Get the current stock price. Using custom bars allows us to not worry about the day of the week and if the stock market is open
     Information: https://polygon.io/docs/rest/stocks/aggregates/custom-bars
@@ -26,6 +28,28 @@ async def get_stock_price(ticker: str, today: str) -> Tuple[Optional[float], Opt
         return None, f"No data found for the contract {ticker}"
 
     return data["results"][0]["c"], None
+
+@alru_cache(maxsize=2048)
+async def get_stock_price_last_24_months(ticker: str, todays_month_year: str) -> Tuple[Optional[np.ndarray], Optional[str]]:
+    """
+    Get the stock returns over the past 24 months
+    """
+    today_dt = (datetime.strptime(todays_month_year, '%Y-%m') - timedelta(days=1)).replace(day=1)
+    from_date = (today_dt.replace(year=today_dt.year - 2)).strftime('%Y-%m-%d')
+    to_date = (today_dt).strftime('%Y-%m-%d')
+    url = f"https://api.polygon.io/v2/aggs/ticker/{ticker}/range/1/month/{from_date}/{to_date}?adjusted=true&sort=asc&apiKey={Config.get_polygon_api_key()}"
+
+    data = await LocalClient.get_api_request(url)
+
+    if data.get("results") is None:
+        raise Exception(f"Error calling API. Unable to get stock price. Please try again shortly.")
+    # If the results are empty, we want to cache it because the data pull query is bad, like an invalid stock.
+    if len(data["results"]) == 0:
+        return None, f"No data found for the contract {ticker}"
+    
+    closing_stock_prices = [result["c"] for result in data["results"]]
+
+    return np.array(closing_stock_prices), None
 
 @alru_cache(maxsize=2048)
 async def get_options_contract_for_iv(ticker: str, stock_price: float, today: str) -> Tuple[Optional[dict], Optional[str]]:

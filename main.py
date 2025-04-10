@@ -10,7 +10,6 @@ from fastapi import APIRouter, FastAPI
 from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 import asyncpg
-import httpx
 import numpy as np
 
 from base_models.base_model_requests import StockRequest
@@ -26,7 +25,7 @@ from models.company_stock_start_parameters import CompanyStockStartParameters
 from models.employee_options import EmployeeOptions
 from stock_price import generate_scenarios, run_scenarios_against_strategies
 
-from strategies import get_core_strategies, get_all_strategies
+from strategies import get_core_strategies, get_all_strategies, get_no_lookback_strategies
 import json
 
 @asynccontextmanager
@@ -40,16 +39,16 @@ async def lifespan(app: FastAPI):
     
     LocalClient()
 
-    app.state.pool = await asyncpg.create_pool(
-        user=config['username'],
-        password=config['password'],
-        database='espp',
-        host=config['host'],
-        port=config['port']
-    )
+    # app.state.pool = await asyncpg.create_pool(
+    #     user=config['username'],
+    #     password=config['password'],
+    #     database='espp',
+    #     host=config['host'],
+    #     port=config['port']
+    # )
 
     yield
-    await app.state.pool.close()
+    # await app.state.pool.close()
 
 app = FastAPI(
     lifespan=lifespan,
@@ -88,12 +87,8 @@ async def read_index():
 
         return HTMLResponse(content=content)
     
-@main_router.get("/strategies", response_class=JSONResponse)
-async def read_strategies():
-    with open(os.path.join(os.path.dirname(__file__), 'static', 'strategies.json'), 'r', encoding='utf-8') as file:
-        return HTMLResponse(content=file.read())
-    
-@main_router.get("/stock_data")
+
+@main_router.get("/stock_data", response_class=JSONResponse)
 async def get_stock_data(ticker: str):
     if len(ticker) == 0:
         return JSONResponse(content={"error": "No ticker passed"}, status_code=400)
@@ -105,14 +100,16 @@ async def get_stock_data(ticker: str):
     # Passing in today as a parameter to easily utilize lru_cache
     today = datetime.now().strftime('%Y-%m-%d')
     try:
-        stock_price, volatility = await get_stock_price_and_volatility(ticker, today)
+        stock_price, volatility, expected_return = await get_stock_price_and_volatility(ticker, today)
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
 
     #convert the error to a string so it can be sent to the frontend
     if type(volatility) != float:
         volatility = str(volatility)
-    return JSONResponse(content={"stock_price": stock_price, "volatility": volatility})
+    if type(expected_return) != float:
+        expected_return = str(expected_return)
+    return JSONResponse(content={"stock_price": stock_price, "volatility": volatility, "expected_return": expected_return})
 
 @main_router.get("/time_series", response_class=JSONResponse)
 async def get_time_series(job_id: str):
@@ -131,7 +128,7 @@ async def generate_stock_run(request: StockRequest, strategies: Optional[str] = 
         discount_rate=round(1 - request.employee_stock_plan.discount_rate, 2),
         offering_periods=request.employee_stock_plan.offering_periods,
         pay_periods_per_offering=request.employee_stock_plan.pay_periods_per_offering,
-        cost_to_sell=request.employee_stock_plan.cost_to_sell
+        allows_lookback=request.employee_stock_plan.allows_lookback
     )
     company_stock_start_parameters = CompanyStockStartParameters(
         initial_price=request.company_stock_params.initial_price,
@@ -144,7 +141,8 @@ async def generate_stock_run(request: StockRequest, strategies: Optional[str] = 
         max_contribution=request.employee_options.max_contribution,
         steps_to_zero=request.employee_options.steps_to_zero,
         liquidity_preference_rate=request.employee_options.liquidity_preference_rate,
-        capital_gains_tax_rate=request.employee_options.capital_gains_tax_rate
+        capital_gains_tax_rate=request.employee_options.capital_gains_tax_rate,
+        ignore_liquidity_preference=request.employee_options.ignore_liquidity_preference
     )
     
     if job_id is not None:
@@ -162,8 +160,10 @@ async def generate_stock_run(request: StockRequest, strategies: Optional[str] = 
 
     if strategies is None or strategies == "simple":
         pulled_strategies = get_core_strategies()
+    elif not company_stock_plan.allows_lookback:
+        pulled_strategies = get_no_lookback_strategies()
     else:
-        pulled_strategies = get_all_strategies()
+        pulled_strategies = get_core_strategies()
     
     response = run_scenarios_against_strategies(price_sets, employee_options, pulled_strategies)
     for result in response:

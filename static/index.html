@@ -150,7 +150,7 @@
 </head>
 <body class="bg-gray-200 min-h-screen flex flex-col p-4 max-w-screen-lg mx-auto">
     <div id = "intro"class="flex-1 flex flex-col gap-4 mb-4 text-center">
-        <h2 style="font-weight: bold; color: #2c3e50; font-size: 1.35em;">Stock Purchase Information</h2>
+        <h2 style="font-weight: bold; color: #2c3e50; font-size: 1.35em;">ESPP Benefits Calculator</h2>
         <p>
             A company's Employee Stock Purchase Plan (ESPP) represents a potentially great benefit that can add thousands of dollars to your net income every year.
             By understanding how your company's ESPP works, you can make an educated decision about how much you should contribute.
@@ -196,11 +196,18 @@
                     </span>
                     <input type="number" id="pay_periods_per_offering" name="pay_periods_per_offering" min="1" placeholder="12">
                 </div>
+                <div class="user-input-tooltip">
+                    <label for="lookback_allowed">Lookback Allowed</label>
+                    <span class="tooltip">❓
+                        <span class="tooltip-text">Whether the company allows employees to purchase shares at the lower price of the current stock price or the price at the beginning of the offering period. Otherwise, just purchased at the end of the offering period.</span>
+                    </span>
+                    <input type="checkbox" id="lookback_allowed" name="lookback_allowed" checked>
+                </div>
             </div>
             <div id="stock-parameters">
                 <h3 class="box-heading">Company Stock Parameters</h3>
                 <p class="my-4; font-size: 0.85em;">What are the fundamentals of the stock? <br>This is important because more volatile stocks will have a higher expected rate of return, which will increase the benefit of the ESPP.</p>
-                <div style="text-align: center; margin-top: 0.5em;">
+                <div id="get-stock-data-div" class="relative flex justify-center items-center" style="text-align: center; margin-top: 0.5em;">
                     <button id="volatility_button" onclick="getStockData()" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Fetch basic stock price and volatility</button>
                 </div>
                 <div id="volatility_error_message" style="visibility: hidden; color: red;">Error: No stock ticker passed</div>
@@ -249,6 +256,13 @@
                     <input type="number" id="liquidity_preference" name="liquidity_preference" min="0" placeholder="0.05">
                 </div>
                 <div class="user-input-tooltip">
+                    <label for="ignore_liquidity_preference">Use Liquidity Preference</label>
+                    <span class="tooltip">❓
+                        <span class="tooltip-text">If disabled, it won't use the LPR and it won't factor money not contributed to the ESPP into the ROI.</span>
+                    </span>
+                    <input type="checkbox" id="ignore_liquidity_preference" name="ignore_liquidity_preference" checked>
+                </div>
+                <div class="user-input-tooltip">
                     <label for="capital_gains_tax_rate">Capital Gains Tax Rate</label>
                     <span class="tooltip">❓
                         <span class="tooltip-text">
@@ -261,7 +275,7 @@
                     <input type="number" id="capital_gains_tax_rate" name="capital_gains_tax_rate" min="0" placeholder="0.15">
                 </div>
             </div>
-            <div id="get-results-div" style="padding: 4px; background-color: unset; outline: unset; margin: 0;">
+            <div id="get-results-div" class="relative flex justify-center items-center" style="padding: 4px; background-color: unset; outline: unset; margin: 0;">
                 <div style="text-align: center;">
                     <button id="results" onclick="getResults(this)" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Fetch stock strategy results</button>
                 </div>
@@ -306,25 +320,72 @@
     </div>
     <div id="bottom" class="mt-auto pt-4 border-t border-gray-300">
         <div>
+            <h4 style="font-weight: bold; text-align: center; font-size: 1.2em;">How it works</h4>
+            <h5 style="font-weight: bold; font-size: 1.1em;">The problem</h5>
+                <p>
+                    For an employee stock plan, the employee is typically allowed to purchase stocks at a discount to the market price. If the employer has a solid plan, the employee can even purchase stocks using a lookback
+                    method that takes the lower of the price at the beginning of the offering period or the price at the end of the offering period, multiplied by the discount rate. Employees typically set how much they want to contribute
+                    at the beginning of the period, and if needed, they can lower their contribution midway through the period. This is a great benefit that should be utilized by many employees, provided the discount rate is high enough.
+                    <br>
+                    Employee Stock Purchase Plans are regulated by the IRS, and have a maximum contribution limit. You are allowed to purchase 25000 worth of stock per year, which is divided into 2 (or more) offering periods.
+                    This means if you buy $15000 worth of stock in the first period, you can only buy $10000 worth of stock in the second period. Additionally, the IRS calculates the amount of stock purchased by multiplying
+                    the price at the beginning of the offering period by the number of shares purchased at the end of the offering period. So if the stock price falls in the first period and you contribute a large amount,
+                    you won't be able to contribute as much in the second period. This can be very bad if the stock price falls in the first period, and rises in the second period, because you miss out on the lookback discount
+                    of the stock price in the second period, which translates into significantly larger capital gains. This means that the if the employee is able to contribute a large amount of money in periods where the stock rises,
+                    they can get more value out of the ESPP.
+                    <br>
+                    Lastly, employees may also want to be conscious of how much they contribute to the ESPP, as they may overcontribute due to the above IRS rules. This can result in a refund at the end of the year, which is money
+                    that could have been in a bank account earning interest. This is where the liquidity preference rate comes in to assign value to money that is not contributed to the ESPP. This happened to me last year due to CVS' dropping
+                    stock price, and I funnelled that energy into this project!
+                </p>
+            <h5 style="font-weight: bold; font-size: 1.1em;">Inputs</h5>
+                <p>
+                    In order to determine the inputs company stock parameters, I utilized the polygon API and the fred API. Polygon contains a wealth of stock information, 
+                    but using the free tier, I can get the basics needed to do these calculations. The fred API is used to get the risk free rate. In order to calculate the stock volatility,
+                    I used the polygon API to get the options pricing for the stock approximately 1 year out for the option with the strike place that is closest to the current stock price.
+                    From there, I used the Black-Scholes formula to calculate the volatility of the stock. In order to calculate the expected rate of return, I pulled
+                    the past 24 months of stock prices to the past 24 months of SPY prices, and plugged those into the CAPM formula to get the expected rate of return.
+                </p>
+            <h5 style="font-weight: bold; font-size: 1.1em;">Forecasting of prices</h5>
+                <p>
+                    In order to forecast the price of the stock, I used the volatility and expected rate of return to generate 1000 simulations of the stock price over the course of the year
+                    a Monte Carlo simulations. For the intervals, I used the number of pay periods the employee has per year, because that represents moments where the employee can change their contributions.
+                </p>
+            <h5 style="font-weight: bold; font-size: 1.1em;">Model runs</h5>
+                <p>
+                    In order to run the strategies, the model iterates through the stock prices one period at a time. The strategies are functions that determine how much money the employee should contribute given the current stock price
+                    and the current state of what the employee is able to contribute to the ESPP. After the end of every pay period, a function runs to update the current state of the ESPP. At the end of every offering period, stocks are
+                    purchased according the rules set forth by the IRS, taking into account the lookback and discount rates. If the employee overcontributes, the excess money is refunded.
+                </p>
+            <h5 style="font-weight: bold; font-size: 1.1em;">Strategies</h5>
+                <p>
+                    I developed multiple different strategies to try and maximize the benefit of the ESPP. Ultimately, the best strategy is just to put as much money as you can reasonably afford into the ESPP.
+                    Trying to game the system by looking to maximize your contributions in periods where the stock price rises can result in higher gains, but it is very difficult to time and the return on time
+                    investment isn't there.
+                </p>
+                <p>
+                    However, I did develop two strategies that do attempt to maximize the benefit of the ESPP, and both managed to outperform the "Max Contribution with no overpayment" strategy.
+                    <br>
+                    <br>
+                    The first strategy is "Readjust Halfway". This strategy attempts to contribute the maximum amount of money for the first 3 months of the year, but then reduces the contribution if the stock
+                    is not performing well. That way, the employee can potentially take advantage of a stock price rise in the second period of the year.
+                    <br>
+                    <br>
+                    The second strategy is "Maximize for Large Periods". This strategy is similiar to readjust halfway, but it is attempting to readjust every single period by generating probability distributions
+                    of the stock's performance the rest of the period. Essentially, it is doing a simulation of a simulation to determine the chances the period will be a high performing period.
+                    Once the period is identified as a low performing period, the strategy shifts to contributing a lower amount of money the rest of the period so the employee can still take full advantage of the stock
+                    plan, which may not happen if they eliminate contribtions altogether.
+                </p>
+        </div>
+        <div>
             Assumptions:
-            - Assumes stocks are purchased at the smaller of the price at the beginning of the offering period or the price at the end of the offering period, multiplied by 1 - the discount rate.
             - This model assumes the stock is sold at the end of the offering period. This often doesn't match the real world, as there is a delay to selling the stock.
+            - This model currently ignores the cost to sell the stock.
+            - This model currently ignores potential changes in contributions that can come from a mid year raise.
         </div>
         <div>
-            <h2>Implementation Details</h2>
-            <p>You can find the source code for the stock strategies at my GitHub repository:</p>
-            <a href="https://github.com/mcsj120/employee-stock-purchase-plan-strategy" target="_blank">GitHub Repository</a>
-        </div>
-        <div>
-            <h2>Suggestions</h2>
-            <p>Suggestions on new strategies or ways to improve the system are greatly appreciated!</p>
-            Name (Optional):<input type="text" id="suggestor_name" name="suggestor_name"/>
-            <br>
-            Email (Optional):<input type="text" id="email" name="email"/>
-            <br>
-            Suggestions:<input type="text" id="suggestions" name="suggestions"/>
-            <br>
-            <button onclick="sendSuggestion()">Submit suggestion</button>    
+            <h2 style="font-weight: bold; font-size: 1.1em;">Implementation Details</h2>
+            <p>You can find the source code for the stock strategies at my GitHub repository: <a style="text-decoration: underline; color: blue;" href="https://github.com/mcsj120/employee-stock-purchase-plan-strategy" target="_blank">ESPP</a></p>
         </div>
     </div>
 
@@ -375,25 +436,44 @@
         }
         scenario_run_in_progress = true;
         let company = document.querySelector("#company").value;
-        let url = `http://localhost:8000/stock_data?ticker=${company}`;
+        let url = `${window.location.origin}/stock_data?ticker=${company}`;
+        const getStockDataDiv = document.getElementById('get-stock-data-div');
+        const loadingIcon = document.createElement('div');
+        loadingIcon.id = 'loading-icon';
+        loadingIcon.classList.add('spinner', 'absolute');
+        loadingIcon.style.right = '4px'; // Shifted the spinner to the left
+        getStockDataDiv.appendChild(loadingIcon);
         sendGetRequest(url).then((data) => {
             scenario_run_in_progress = false;
             if("error" in data){
                 create_error_message(data.error);
                 console.log(data.error);
-                return;
+            } else{
+                document.querySelector("#initial_price").value = data.stock_price;
+                error_messages = ""
+                if (typeof data.volatility !== 'number') {
+                    error_messages += `Error fetching volatility: ${data.volatility}`;
+                } else {
+                    document.querySelector("#volatility").value = data.volatility.toFixed(4);
+                }
+                if (typeof data.expected_return !== 'number') {
+                    error_messages += `Error fetching expected return: ${data.expected_return}`;
+                } else {
+                    document.querySelector("#expected_ror").value = data.expected_return.toFixed(4);
+                }
+                if(error_messages.length > 0){
+                    create_error_message(error_messages);
+                } else {
+                    remove_error_message();
+                }
             }
-            document.querySelector("#initial_price").value = data.stock_price;
-            if (typeof data.volatility !== 'number') {
-                create_error_message(`Error fetching volatility: ${data.volatility}`);
-            } else {
-                remove_error_message();
-                document.querySelector("#volatility").value = data.volatility.toFixed(4);
-            }
+
+            getStockDataDiv.removeChild(loadingIcon);
         }).catch((error) => {
             scenario_run_in_progress = false;
             create_error_message("Error fetching stock data");
             console.log(error);
+            getStockDataDiv.removeChild(loadingIcon);
         });
     }
 
@@ -401,12 +481,21 @@
         if(scenario_run_in_progress){
             return;
         }
+
+
+        const getResultsDiv = button.parentElement.parentElement;
+        const loadingIcon = document.createElement('div');
+        loadingIcon.id = 'loading-icon';
+        loadingIcon.classList.add('spinner', 'absolute');
+        loadingIcon.style.right = '20px'; // Shifted the spinner to the left
+        getResultsDiv.appendChild(loadingIcon);
         
         // Employee Stock Purchase Plan Parameters
         let company = document.querySelector("#company").value || document.querySelector("#company").placeholder;
         let discount_rate = document.querySelector("#discount_rate").value || document.querySelector("#discount_rate").placeholder;
         let offering_periods = document.querySelector("#offering_periods").value || document.querySelector("#offering_periods").placeholder;
         let pay_periods_per_offering = document.querySelector("#pay_periods_per_offering").value || document.querySelector("#pay_periods_per_offering").placeholder;
+        let lookback_allowed = document.querySelector("#lookback_allowed").checked;
         //let cost_to_sell = document.querySelector("#cost_to_sell").value || document.querySelector("#cost_to_sell").placeholder;
 
         // Company Stock Parameters
@@ -418,9 +507,10 @@
         let maximum_contribution = document.querySelector("#maximum_contribution").value || document.querySelector("#maximum_contribution").placeholder;
         //let steps_to_zero = document.querySelector("#steps_to_zero").value || document.querySelector("#steps_to_zero").placeholder;
         let liquidity_preference_rate = document.querySelector("#liquidity_preference").value || document.querySelector("#liquidity_preference").placeholder;
+        let ignore_liquidity_preference = !document.querySelector("#ignore_liquidity_preference").checked;
         let capital_gains_tax_rate = document.querySelector("#capital_gains_tax_rate").value || document.querySelector("#capital_gains_tax_rate").placeholder;
 
-        let url = `http://localhost:8000/stock_run?strategies=${button.id == "fetch-all" ? "all" : "simple"}`//${job_id !== null ? `?job_id=${job_id}` : ''}`;
+        let url = `${window.location.origin}/stock_run?strategies=${button.id == "fetch-all" ? "all" : "simple"}`//${job_id !== null ? `?job_id=${job_id}` : ''}`;
         sendPostRequest(url, {
             "company_stock_params":{
                 "initial_price": initial_price,
@@ -432,12 +522,14 @@
                 "discount_rate": discount_rate,
                 "offering_periods": offering_periods,
                 "pay_periods_per_offering": pay_periods_per_offering,
-                "cost_to_sell": 0
+                "cost_to_sell": 0,
+                "allows_lookback": lookback_allowed
             },
             "employee_options":{
                 "max_contribution": maximum_contribution,
                 "steps_to_zero": 0,
                 "liquidity_preference_rate": liquidity_preference_rate,
+                "ignore_liquidity_preference": ignore_liquidity_preference,
                 "capital_gains_tax_rate": capital_gains_tax_rate
             }
 
@@ -493,7 +585,9 @@
                 }
             });
 
-            
+            // Remove the error message div
+            remove_error_message()
+
             let strategies = document.querySelectorAll(".strategy");
             // Delete extra strategies and the extra data that comes with it
             if (button.id != "fetch-all"){
@@ -529,15 +623,17 @@
             }
             job_id = data.job_id;
             document.getElementById("fetch-series").style.visibility = "visible";
+            getResultsDiv.removeChild(loadingIcon);
         }).catch((error) => {
             scenario_run_in_progress = false;
             create_error_message("Error fetching stock data");
             console.log(error);
+            getResultsDiv.removeChild(loadingIcon);
         });
     }
 
     function fetchCSV(){
-        let url = `http://localhost:8000/time_series?job_id=${job_id}`;
+        let url = `${window.location.origin}/time_series?job_id=${job_id}`;
         sendGetRequestFile(url).then((data) => {
             console.log(data);
         });
@@ -549,7 +645,7 @@
             suggestion.placeholder = "Please enter a suggestion";
             return;
         }
-        sendPostRequest(`http://localhost:8000/suggestions`, {
+        sendPostRequest(`${window.location.origin}/suggestions`, {
             "name": document.querySelector("#suggestor_name").value,
             "email": document.querySelector("#email").value,
             "suggestion": suggestion

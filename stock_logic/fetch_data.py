@@ -5,11 +5,11 @@ from datetime import datetime, timedelta
 from functools import _make_key, wraps
 
 from api_calls.fred import get_one_year_risk_free_rate
-from api_calls.polygon import get_options_contract_for_iv, get_stock_price
+from api_calls.polygon import get_options_contract_for_iv, get_stock_price_now, get_stock_price_last_24_months
 
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
-from stock_calculations import implied_volatility
+from stock_calculations import implied_volatility, get_expected_rate_of_return_from_capm
 
 def cache_with_expiry(maxsize=2048, expiry=timedelta(days=2)):
     def decorator(func):
@@ -50,8 +50,8 @@ def cache_with_expiry(maxsize=2048, expiry=timedelta(days=2)):
     return decorator
 
 @cache_with_expiry(maxsize=2048, expiry=timedelta(days=2))
-async def get_stock_price_and_volatility(ticker: str, today: str) -> tuple[float, float]:
-    stock_price, err = await get_stock_price(ticker, today)
+async def get_stock_price_and_volatility(ticker: str, today: str) -> tuple:
+    stock_price, err = await get_stock_price_now(ticker, today)
     if err is not None:
         raise Exception(err)
     volatility = None
@@ -76,5 +76,20 @@ async def get_stock_price_and_volatility(ticker: str, today: str) -> tuple[float
     except Exception as e:
         print(f"Error getting volatility: {e}")
         volatility = e
+    try:
+        today_month_year = today_dt.strftime('%Y-%m')
+        # Data is 24 months because that is what is free from polygon :)
+        stock_price_last_24_months, err = await get_stock_price_last_24_months(ticker, today_month_year)
+        if err is not None:
+            raise Exception(err)
+        spy_last_24_months, err = await get_stock_price_last_24_months("SPY", today_month_year)
+        if err is not None:
+            raise Exception(err)
 
-    return (stock_price, volatility)
+        # Market return is 9% for now
+        expected_return = get_expected_rate_of_return_from_capm(stock_price_last_24_months, spy_last_24_months, risk_free_rate, 0.09)
+    except Exception as e:
+        print(f"Error getting expected return: {e}")
+        expected_return = e
+
+    return (stock_price, volatility, expected_return)
